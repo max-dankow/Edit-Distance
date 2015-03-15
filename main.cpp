@@ -95,102 +95,105 @@ long long edit_distance(const std::string &s1, const std::string &s2,
     return distance[get_index(n - 1, m - 1, n)];
 }
 
+std::vector<long long> distance(std::string s1, std::string s2)
+{
+    std::vector<long long> tek(s2.size() + 1, 0), last(s2.size() + 1, 0);
+    std::vector<long long> *vec[2] = {&last, &tek};
+
+    (*vec[0])[0] = 0;
+
+    for (size_t i = 1; i < s2.size() + 1; ++i)
+    {
+        (*vec[0])[i] = (*vec[0])[i - 1] + 1;
+    }
+
+    //write_matrix(way, n, m);
+
+    for (size_t j = 1; j < s1.size() + 1; ++j)
+    {
+        (*vec[1])[0] = (*vec[0])[0] + 1;
+
+        for (size_t i = 1; i < s2.size() + 1; ++i)
+        {
+            (*vec[1])[i] = (*vec[1])[i - 1] + 1;
+
+            if ((*vec[1])[i] > (*vec[0])[i] + 1)
+            {
+                (*vec[1])[i] = (*vec[0])[i] + 1;
+                //distance[get_index(i, j, n)] = distance[get_index(i, j - 1, n)] + 1;
+            }
+
+            if ((*vec[1])[i] > (*vec[0])[i - 1] + ((s1[i - 1] == s2[j - 1])? 0 : 1))
+            {
+                (*vec[1])[i] = (*vec[0])[i - 1] + ((s1[i - 1] == s2[j - 1])? 0 : 1);
+                //distance[get_index(i, j, n)] = distance[get_index(i - 1, j - 1, n)] + ((s1[i - 1] == s2[j - 1])? 0 : 1);
+            }
+        }
+
+        std::swap(vec[0], vec[1]);
+    }
+
+    return *(vec[0]);
+}
+
 long long edit_distance_mod(const std::string &s1, const std::string &s2,
                             std::vector<std::pair<size_t, size_t> > &result,
                             int offset_x, int offset_y)
 {
-
     //if ((s1.size() <= 1) || (s2.size() <= 1))
     //    return 0;
     //assert(s1.size() != 0);
-    size_t middle = (s1.size()) / 2;
-    std::vector<long long> distance(s2.size());
 
-    for (size_t i = 0; i < distance.size(); ++i)
-        distance[i] = i;
+    std::ptrdiff_t middle = (s1.size()) / 2;
 
-    for (size_t i = 1; i <= middle; ++i)
-    {
-        long long last = distance[0] + 1;
+    std::string reverse_s1 = std::string(s1, middle, s1.size() - middle + 1);
+    std::reverse(reverse_s1.begin(), reverse_s1.end());
+    std::string reverse_s2 = s2;
+    std::reverse(reverse_s2.begin(), reverse_s2.end());
 
-        for (size_t j = 1; j < distance.size(); ++j)
-        {
-            long long temp =  std::min(last + 1, std::min(distance[j] + 1, distance[j - 1] + ((s1[i] == s2[j])? 0 : 1)));
-            distance[j - 1] = last;
-            last = temp;
-        }
-
-        distance[distance.size() - 1] = last;
-    }
-
-    std::vector<long long> re_distance(s2.size());
-
-    for (size_t i = 0; i < re_distance.size(); ++i)
-        re_distance[i] = re_distance.size() - i - 1;
-
-    for (size_t i = s1.size() - 2; i >= middle; --i)
-    {
-        long long last = re_distance[re_distance.size() - 1] + 1;
-
-        for (std::ptrdiff_t j = re_distance.size() - 2; j >= 0; --j)
-        {
-            long long temp =  std::min(last + 1, re_distance[j] + 1);
-            temp = std::min(re_distance[j + 1] + ((s1[i] == s2[j])? 0 : 1), temp);//check the length
-            re_distance[j + 1] = last;
-            last = temp;
-        }
-
-        re_distance[0] = last;
-    }
+    std::vector<long long> left = distance(std::string(s1, 0, middle), s2);
+    std::vector<long long> right = distance(reverse_s1, reverse_s2);
 
     size_t min_index = 0;
 
-    for (size_t i = 1; i < distance.size(); ++i)
+    for (size_t i = 1; i < left.size(); ++i)
     {
-        if (distance[i] + re_distance[i] < distance[min_index] + re_distance[min_index] )
+        if (left[i] + right[i] < left[min_index] + right[min_index])
             min_index = i;
     }
 
-    //std::cout << s1 << ' ' << s2  << '\n';
-    //std::cout << middle + offset_x <<' '<< min_index + offset_y << std::endl;
-
     std::pair<std::string, std::string> substrings[2];
 
-    substrings[0].first = std::string(s1, 0, middle + 1);
-    substrings[0].second = std::string(s2, 0, min_index + 1);
-    substrings[1].first = std::string(s1, middle, s1.size() - middle + 1);
-    substrings[1].second = std::string(s2, min_index, s2.size() - min_index + 1);
+    substrings[0].first = std::string(s1, 0, middle);
+    substrings[0].second = std::string(s2, 0, min_index);
+    substrings[1].first = std::string(s1, middle, s1.size() - middle);
+    substrings[1].second = std::string(s2, min_index, s2.size() - min_index);
 
-    //assert((substrings[0].first[0] != char(1)));
-    if ((substrings[0].first == s1 && substrings[0].second == s2) &&
-            (substrings[1].first.size() <= 1 && substrings[1].second.size() <= 1))
+    if (substrings[0].first.size() <= 1  && substrings[0].second.size() <= 1 &&
+        substrings[1].first.size() <= 1 && substrings[1].second.size() <= 1)
     {
+        //std::cout << "ADDED :";
+        //std::cout << middle + offset_x <<' '<< min_index + offset_y << std::endl;
+        result.push_back(std::make_pair(middle + offset_x, min_index + offset_y));
         return 0;
     }
 
-    /*if (!(substrings[0].first.size() + ((substrings[0].first[0] == char(1))? -1 : 0) <= 1 &&
-        substrings[0].second.size() + ((substrings[0].second[0] == char(1))? -1 : 0) <= 1))
-    {*/
-        edit_distance_mod(substrings[0].first, substrings[0].second, result, offset_x, offset_y);
-    //}
+    edit_distance_mod(substrings[0].first, substrings[0].second, result, offset_x, offset_y);
+
     //std::cout << "ADDED :";
     //std::cout << middle + offset_x <<' '<< min_index + offset_y << std::endl;
     result.push_back(std::make_pair(middle + offset_x, min_index + offset_y));
 
-    //if (!(substrings[1].first == s1 &&
-    //    substrings[1].second == s2))
-    //{
-        edit_distance_mod(substrings[1].first, substrings[1].second, result, offset_x + middle, offset_y + min_index);
-    //}
+    edit_distance_mod(substrings[1].first, substrings[1].second, result, offset_x + middle, offset_y + min_index);
 
-    return distance[min_index] + re_distance[min_index];
+    return left[min_index] + right[min_index];
 }
 
 long long edit_distance_mod(const std::string &s1, const std::string &s2,
                             std::vector<std::pair<size_t, size_t> > &result)
 {
     result.assign(1, std::make_pair(0, 0));
-    long long distance_result = edit_distance_mod(char(1) + s1, char(1) + s2, result, 0, 0);
+    long long distance_result = edit_distance_mod(/*char(1) + */s1,/* char(1) + */s2, result, 0, 0);
     result.push_back(std::make_pair(s1.size(), s2.size()));
     return distance_result;
 }
@@ -279,12 +282,14 @@ void show_way(const std::string &s1, const std::string &s2,
 
 int main()
 {
-    std::string s1 = "m", s2 = "psycho";
+    std::string s1 = "mamka", s2 = "papla";
+    std::vector<std::pair<size_t, size_t> > way;
+
     std::cout << "\nORIGINAL ";
 
-    std::vector<std::pair<size_t, size_t> > way;
     std::cout << edit_distance(s1, s2, way) << "\n\n";
     show_way(s1, s2, way);
+    distance(s1, s2);
 
     std::cout << "\nHIRSCHBERG ";
 
