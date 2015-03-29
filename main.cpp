@@ -92,7 +92,7 @@ long long edit_distance(const std::string &s1, const std::string &s2,
     return distance[get_index(n - 1, m - 1, n)];
 }
 
-std::vector<long long> distance(std::string s1, std::string s2)
+std::vector<long long> distance(const std::string &s1, const std::string &s2)
 {
     std::vector<long long> tek(s2.size() + 1, 0), last(s2.size() + 1, 0);
     std::vector<long long> *vec[2] = {&last, &tek};
